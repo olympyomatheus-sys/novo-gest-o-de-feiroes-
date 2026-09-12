@@ -1157,6 +1157,7 @@ thead th {
           <select id="cal-view-type" onchange="renderCalendar()" style="border:1px solid var(--gray-300);border-radius:8px;padding:7px 12px;font-size:.83rem;background:var(--white)">
             <option value="month">Mês</option>
             <option value="agenda">Agenda</option>
+            <option value="todos">Todos os feirões</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="calGoToday()">Hoje</button>
           <button class="btn btn-secondary btn-sm" onclick="exportFeiraosExcel()">
@@ -1206,6 +1207,11 @@ thead th {
           <!-- Agenda view -->
           <div id="cal-agenda-view" style="display:none">
             <div id="cal-agenda-list"></div>
+          </div>
+
+          <!-- Todos os feirões view -->
+          <div id="cal-todos-view" style="display:none">
+            <div id="cal-todos-list"></div>
           </div>
 
           <!-- Hidden elements kept for JS compatibility -->
@@ -3897,9 +3903,11 @@ function renderCalendar() {
   const viewType = document.getElementById('cal-view-type').value;
   document.getElementById('cal-month-view').style.display = viewType==='month' ? '' : 'none';
   document.getElementById('cal-agenda-view').style.display = viewType==='agenda' ? '' : 'none';
+  document.getElementById('cal-todos-view').style.display = viewType==='todos' ? '' : 'none';
 
   if(viewType === 'month') renderCalMonthView();
-  else renderCalAgendaView();
+  else if(viewType === 'agenda') renderCalAgendaView();
+  else renderCalTodosView();
 
   renderCalUpcoming();
   renderCalFeiraoSync();
@@ -4006,6 +4014,47 @@ function renderCalAgendaView() {
         </div>
         <span class="badge ${cfg.cls.replace('cal-event-','badge-')}">${cfg.label}</span>
         ${e._recurring ? '<span class="badge badge-gray" style="font-size:.65rem">↻</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCalTodosView() {
+  const list = document.getElementById('cal-todos-list');
+  const cands = DB.candidatos();
+  const feiraos = DB.feiraos().slice().sort((a,b) => (a.dataEvento||'').localeCompare(b.dataEvento||''));
+
+  if(!feiraos.length) {
+    list.innerHTML = '<div class="card card-body text-muted text-sm text-center" style="padding:40px">Nenhum feirão cadastrado.</div>';
+    return;
+  }
+
+  const todayStr = _hojeStr();
+  let lastMonth = '';
+  list.innerHTML = feiraos.map(f => {
+    const monthKey = f.dataEvento ? f.dataEvento.slice(0,7) : '—';
+    const monthLabel = f.dataEvento ? `${MESES[parseInt(f.dataEvento.slice(5,7),10)-1]} ${f.dataEvento.slice(0,4)}` : 'Sem data';
+    const header = monthKey !== lastMonth ? `<div style="font-size:.8rem;font-weight:800;color:var(--blue-800);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--blue-100)">${monthLabel}</div>` : '';
+    lastMonth = monthKey;
+
+    const count = cands.filter(c=>c.feiraoId===f.id).length;
+    const admCount = cands.filter(c=>c.feiraoId===f.id&&c.admitido).length;
+    const isAberto = f.statusFeirao==='ABERTO';
+    const isPast = f.dataEvento && f.dataEvento < todayStr;
+    const badge = isAberto
+      ? '<span class="badge badge-green">Aberto</span>'
+      : '<span class="badge badge-gray">Encerrado</span>';
+
+    return `${header}<div class="card" style="margin-bottom:8px;cursor:pointer${isPast?';opacity:.7':''}" onclick="openFeiraModal('${f.id}')">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+        <div style="font-size:1.5rem">🏢</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.88rem">${esc(f.nomeFeirao)}</div>
+          <div class="text-muted text-sm">${f.dataEvento?fmt(f.dataEvento):'Sem data'} ${f.localEvento?'· '+esc(f.localEvento):''} ${f.recrutadorNome?'· '+esc(f.recrutadorNome):''}</div>
+        </div>
+        <span class="badge badge-orange" style="font-size:.65rem">${admCount} adm.</span>
+        <span class="badge badge-blue" style="font-size:.65rem">${count} cand.</span>
+        ${badge}
       </div>
     </div>`;
   }).join('');
