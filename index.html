@@ -615,10 +615,40 @@ tbody td { padding: 5px 10px; color: var(--gray-700); vertical-align: middle; wh
 .cal-event-gray { background: var(--gray-100); color: var(--gray-600); }
 .cal-more { font-size: .68rem; color: var(--blue-600); font-weight: 700; cursor: pointer; }
 
-/* Calendar sidebar */
-.cal-layout { display: block; }
-@media (max-width: 900px) { .cal-layout { display: block; } }
+/* Calendar + Feirões side-by-side layout */
+.cal-layout { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .cal-layout { grid-template-columns: 1fr; } }
 .cal-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+/* Feirões side panel */
+.feiraos-panel { background: var(--white); border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 220px); min-height: 320px; }
+.feiraos-panel-header { padding: 12px 14px; border-bottom: 1px solid var(--gray-200); flex-shrink: 0; }
+.feiraos-panel-filters { padding: 10px 14px; border-bottom: 1px solid var(--gray-200); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; background: var(--gray-50, #f8fafc); }
+.feiraos-panel-filters .ff-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.feiraos-panel-filters input[type=text], .feiraos-panel-filters input[type=date], .feiraos-panel-filters select {
+  border: 1px solid var(--gray-300); border-radius: 8px; padding: 6px 9px; font-size: .78rem; background: var(--white); flex: 1; min-width: 0;
+}
+.feiraos-panel-list { overflow-y: auto; padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.feirao-card { border: 1px solid var(--gray-200); border-radius: 10px; padding: 10px 12px; transition: border-color .15s; }
+.feirao-card:hover { border-color: var(--blue-400); }
+.feirao-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.feirao-card-name { font-size: .85rem; font-weight: 800; color: var(--blue-800); line-height: 1.25; }
+.feirao-card-meta { font-size: .74rem; color: var(--gray-500); margin-top: 3px; line-height: 1.4; }
+.feirao-card-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.feirao-card-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.feirao-card-actions .btn { font-size: .7rem; padding: 3px 7px; }
+
+/* Multi-select dropdown (Feirão / Recrutador) */
+.ms-dropdown { position: relative; flex: 1; min-width: 0; }
+.ms-dropdown > button { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 200px; background: var(--white);
+  border: 1px solid var(--gray-300); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,.12); z-index: 200; max-height: 220px; overflow-y: auto; padding: 6px; }
+.ms-panel.open { display: block; }
+.ms-panel label { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 6px; font-size: .8rem; cursor: pointer; color: var(--gray-700); }
+.ms-panel label:hover { background: var(--blue-50); }
+.ms-panel .ms-empty { padding: 8px; font-size: .78rem; color: var(--gray-500); text-align: center; }
+.ms-panel .ms-actions { display: flex; justify-content: space-between; padding: 4px 8px 6px; border-bottom: 1px solid var(--gray-100); margin-bottom: 4px; }
+.ms-panel .ms-actions span { font-size: .72rem; color: var(--blue-600); cursor: pointer; font-weight: 700; }
 .cal-upcoming { background: var(--white); border: 1px solid var(--gray-300); border-radius: 12px; overflow: hidden; }
 .cal-upcoming-header { padding: 14px 16px; background: var(--blue-900); color: var(--white); font-weight: 700; font-size: .88rem; }
 .cal-upcoming-list { padding: 8px; max-height: 400px; overflow-y: auto; }
@@ -1140,7 +1170,9 @@ thead th {
         </div>
       </div>
 
-      <div>
+      <div class="cal-layout">
+        <!-- ═══════ COLUNA ESQUERDA: CALENDÁRIO ═══════ -->
+        <div>
           <div class="cal-header">
             <div style="display:flex;align-items:center;gap:8px">
               <button class="cal-nav-btn" onclick="calNavigate(-1)">&#8249;</button>
@@ -1175,39 +1207,70 @@ thead th {
           <div id="cal-agenda-view" style="display:none">
             <div id="cal-agenda-list"></div>
           </div>
-        </div>
 
-        <!-- Hidden elements kept for JS compatibility -->
-        <div style="display:none">
-          <div id="cal-upcoming-list"></div>
-          <div id="cal-feiraos-sync"></div>
-          <div id="cal-ranking-rec"></div>
-          <div id="cal-taxa-rec"></div>
-        </div>
-
-      <!-- ═══════════════════════════════════════════════════
-           FEIRÕES POR MÊS (abaixo do calendário)
-      ═══════════════════════════════════════════════════ -->
-      <div style="margin-top:32px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-          <div>
-            <h3 style="font-size:1rem;font-weight:800;color:var(--blue-800)">🏢 Feirões de Emprego</h3>
-            <p class="text-muted text-sm" id="feiraos-count-label"></p>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input id="f-search-feirao" type="text" placeholder="Buscar por nome…" oninput="renderFeiraos()" style="min-width:160px;border:1px solid var(--gray-300);border-radius:8px;padding:7px 12px;font-size:.83rem"/>
-            <select id="f-search-recrutador" onchange="renderFeiraos()" style="min-width:140px;border:1px solid var(--gray-300);border-radius:8px;padding:7px 12px;font-size:.83rem;background:var(--white)">
-              <option value="">Todos os Recrutadores</option>
-            </select>
-            <select id="f-status-feirao" onchange="renderFeiraos()" style="border:1px solid var(--gray-300);border-radius:8px;padding:7px 12px;font-size:.83rem;background:var(--white)">
-              <option value="">Todos os status</option>
-              <option value="ABERTO">Aberto</option>
-              <option value="ENCERRADO">Encerrado</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" onclick="clearFeiraFilters()">Limpar</button>
+          <!-- Hidden elements kept for JS compatibility -->
+          <div style="display:none">
+            <div id="cal-upcoming-list"></div>
+            <div id="cal-feiraos-sync"></div>
+            <div id="cal-ranking-rec"></div>
+            <div id="cal-taxa-rec"></div>
           </div>
         </div>
-        <div id="feiraos-by-month"></div>
+
+        <!-- ═══════ COLUNA DIREITA: FEIRÕES (ao lado do calendário) ═══════ -->
+        <div class="feiraos-panel">
+          <div class="feiraos-panel-header">
+            <h3 style="font-size:.95rem;font-weight:800;color:var(--blue-800)">🏢 Feirões de Emprego</h3>
+            <p class="text-muted text-sm" id="feiraos-count-label" style="margin-top:2px"></p>
+          </div>
+
+          <div class="feiraos-panel-filters">
+            <div class="ff-row">
+              <input id="f-search-feirao" type="text" placeholder="🔎 Buscar por nome…" oninput="renderFeiraos()"/>
+            </div>
+            <div class="ff-row">
+              <div class="ms-dropdown" id="ms-dropdown-feirao">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('feirao')">
+                  <span id="ms-feirao-label">Feirões</span> <span>▾</span>
+                </button>
+                <div class="ms-panel" id="ms-panel-feirao"></div>
+              </div>
+              <div class="ms-dropdown" id="ms-dropdown-rec">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('rec')">
+                  <span id="ms-rec-label">Recrutadores</span> <span>▾</span>
+                </button>
+                <div class="ms-panel" id="ms-panel-rec"></div>
+              </div>
+            </div>
+            <div class="ff-row">
+              <select id="f-status-feirao" onchange="renderFeiraos()">
+                <option value="">Todos os status</option>
+                <option value="ABERTO">Aberto</option>
+                <option value="ENCERRADO">Encerrado</option>
+              </select>
+            </div>
+            <div class="ff-row">
+              <select id="f-periodo" onchange="onPeriodoChange()" style="flex:1">
+                <option value="mes">📅 Mês (calendário)</option>
+                <option value="todos">📋 Todos os feirões</option>
+                <option value="custom">🗓 Por período…</option>
+              </select>
+            </div>
+            <div class="ff-row" id="f-data-custom-row" style="display:none">
+              <label style="font-size:.72rem;color:var(--gray-500);display:flex;flex-direction:column;gap:2px;flex:1">De
+                <input id="f-data-ini" type="date" onchange="renderFeiraos()"/>
+              </label>
+              <label style="font-size:.72rem;color:var(--gray-500);display:flex;flex-direction:column;gap:2px;flex:1">Até
+                <input id="f-data-fim" type="date" onchange="renderFeiraos()"/>
+              </label>
+            </div>
+            <div class="ff-row">
+              <button class="btn btn-secondary btn-sm" style="flex:1" onclick="clearFeiraFilters()">Limpar filtros</button>
+            </div>
+          </div>
+
+          <div id="feiraos-by-month" class="feiraos-panel-list"></div>
+        </div>
       </div>
     </div>
 
@@ -1879,7 +1942,7 @@ function refreshPage(page) {
   if(page==='feiraos') page='calendario';
   if(page==='dashboard') { populateFeiraoSelects(); populateAnRecSelect(); renderDashboard(); }
   if(page==='candidatos') { populateFeiraoSelects(); populateAnRecSelect(); renderCandidatos(); }
-  if(page==='calendario') { populateFeiraoSelects(); populateAnRecSelect(); renderCalendar(); renderFeiraos(); }
+  if(page==='calendario') { autoEncerrarFeiroesVencidos(); populateFeiraoSelects(); populateAnRecSelect(); renderMsFilterPanels(); renderCalendar(); renderFeiraos(); }
   if(page==='importar') populateFeiraoSelects();
   if(page==='recrutadores') renderRecrutadores();
 }
@@ -1938,7 +2001,7 @@ function populateFeiraoSelects() {
 }
 
 function populateAnRecSelect() {
-  const recIds = ['an-rec','f-search-recrutador','f-rec-cand'];
+  const recIds = ['an-rec','f-rec-cand'];
   recIds.forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
@@ -2214,92 +2277,217 @@ async function toggleFeirao(id) {
   renderFeiraos();
 }
 
+// ═══════════════════════════════════════
+// ENCERRAMENTO AUTOMÁTICO DE FEIRÕES VENCIDOS
+// Assim que a data do evento passa, o feirão (se ainda ABERTO) é marcado
+// automaticamente como ENCERRADO e o novo status é salvo no banco.
+// ═══════════════════════════════════════
+function _hojeStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+window._lastAutoCloseCheck = null;
+
+async function autoEncerrarFeiroesVencidos(opts) {
+  const silent = opts && opts.silent;
+  const hoje = _hojeStr();
+  // Só roda a verificação uma vez por dia (evita ficar salvando/toastando
+  // repetidamente a cada troca de página no mesmo dia).
+  if(window._lastAutoCloseCheck === hoje) return;
+  window._lastAutoCloseCheck = hoje;
+
+  const all = DB.feiraos();
+  const vencidos = all.filter(f => f.statusFeirao==='ABERTO' && f.dataEvento && f.dataEvento < hoje);
+  if(!vencidos.length) return;
+
+  vencidos.forEach(f => { f.statusFeirao = 'ENCERRADO'; });
+  await DB.saveFeiraos(all);
+
+  if(!silent) {
+    toast(`${vencidos.length} feirão(ões) com data vencida foram encerrado(s) automaticamente.`, 'info');
+  }
+  // Atualiza as telas que exibem status/contagem de feirões, se já estiverem montadas
+  if(window._appReady) {
+    if(currentPage==='calendario') { renderCalendar(); renderFeiraos(); }
+    if(currentPage==='dashboard') renderDashboard();
+  }
+}
+
+// ═══════════════════════════════════════
+// FILTROS MULTI-SELEÇÃO (Feirões / Recrutadores) do painel lateral
+// ═══════════════════════════════════════
+window._ffFilters = { feiraoIds: new Set(), recIds: new Set() };
+
+function toggleMsDropdown(key) {
+  const panel = document.getElementById('ms-panel-' + key);
+  if(!panel) return;
+  const willOpen = !panel.classList.contains('open');
+  document.querySelectorAll('.ms-panel').forEach(p => p.classList.remove('open'));
+  if(willOpen) panel.classList.add('open');
+}
+
+// Fecha os dropdowns ao clicar fora deles
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.ms-dropdown')) {
+    document.querySelectorAll('.ms-panel').forEach(p => p.classList.remove('open'));
+  }
+});
+
+function renderMsFilterPanels() {
+  const feiraos = DB.feiraos().slice().sort((a,b)=>(a.nomeFeirao||'').localeCompare(b.nomeFeirao||''));
+  const recs = DB.recrutadores().slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+
+  const panelFeirao = document.getElementById('ms-panel-feirao');
+  if(panelFeirao) {
+    panelFeirao.innerHTML = (!feiraos.length)
+      ? '<div class="ms-empty">Nenhum feirão cadastrado.</div>'
+      : `<div class="ms-actions"><span onclick="msSelectAll('feirao')">Marcar todos</span><span onclick="msClearAll('feirao')">Limpar</span></div>` +
+        feiraos.map(f => `<label><input type="checkbox" value="${f.id}" ${window._ffFilters.feiraoIds.has(f.id)?'checked':''} onchange="msToggle('feirao','${f.id}')"/> ${esc(f.nomeFeirao)}</label>`).join('');
+  }
+
+  const panelRec = document.getElementById('ms-panel-rec');
+  if(panelRec) {
+    panelRec.innerHTML = (!recs.length)
+      ? '<div class="ms-empty">Nenhum recrutador cadastrado.</div>'
+      : `<div class="ms-actions"><span onclick="msSelectAll('rec')">Marcar todos</span><span onclick="msClearAll('rec')">Limpar</span></div>` +
+        recs.map(r => `<label><input type="checkbox" value="${r.id}" ${window._ffFilters.recIds.has(r.id)?'checked':''} onchange="msToggle('rec','${r.id}')"/> ${esc(r.nome)}</label>`).join('');
+  }
+
+  updateMsLabels();
+}
+
+function msToggle(key, id) {
+  const set = key==='feirao' ? window._ffFilters.feiraoIds : window._ffFilters.recIds;
+  if(set.has(id)) set.delete(id); else set.add(id);
+  updateMsLabels();
+  renderFeiraos();
+}
+
+function msSelectAll(key) {
+  if(key==='feirao') window._ffFilters.feiraoIds = new Set(DB.feiraos().map(f=>f.id));
+  else window._ffFilters.recIds = new Set(DB.recrutadores().map(r=>r.id));
+  renderMsFilterPanels();
+  renderFeiraos();
+}
+function msClearAll(key) {
+  if(key==='feirao') window._ffFilters.feiraoIds = new Set();
+  else window._ffFilters.recIds = new Set();
+  renderMsFilterPanels();
+  renderFeiraos();
+}
+
+function updateMsLabels() {
+  const nF = window._ffFilters.feiraoIds.size;
+  const nR = window._ffFilters.recIds.size;
+  const lF = document.getElementById('ms-feirao-label');
+  const lR = document.getElementById('ms-rec-label');
+  if(lF) lF.textContent = nF ? `Feirões (${nF})` : 'Feirões';
+  if(lR) lR.textContent = nR ? `Recrutadores (${nR})` : 'Recrutadores';
+}
+
+function onPeriodoChange() {
+  const periodo = document.getElementById('f-periodo')?.value || 'mes';
+  const customRow = document.getElementById('f-data-custom-row');
+  if(customRow) customRow.style.display = (periodo==='custom') ? 'flex' : 'none';
+  if(periodo !== 'custom') {
+    // Limpa o período personalizado quando outro modo é escolhido, para não
+    // deixar datas "fantasma" interferindo caso o usuário volte para "custom".
+    const di = document.getElementById('f-data-ini'); if(di) di.value='';
+    const df = document.getElementById('f-data-fim'); if(df) df.value='';
+  }
+  renderFeiraos();
+}
+
 function renderFeiraos() {
   const feiraos = DB.feiraos();
   const cands = DB.candidatos();
   const q = normStr(document.getElementById('f-search-feirao')?.value||'');
-  const qr = document.getElementById('f-search-recrutador')?.value||'';
   const qs = document.getElementById('f-status-feirao')?.value||'';
+  const periodo = document.getElementById('f-periodo')?.value || 'mes';
+  const dIni = document.getElementById('f-data-ini')?.value||'';
+  const dFim = document.getElementById('f-data-fim')?.value||'';
+  const selFeiraoIds = window._ffFilters.feiraoIds;
+  const selRecIds = window._ffFilters.recIds;
 
-  // Filtra pelo mês/ano atual do calendário
   const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
   const monthLabel = `${MESES[calMonth]} ${calYear}`;
 
   let list = feiraos.filter(f => {
     const fym = f.dataEvento ? f.dataEvento.slice(0,7) : '';
-    return fym === ym &&
+    let passPeriodo = true;
+    if(periodo === 'mes') passPeriodo = (fym === ym);
+    else if(periodo === 'todos') passPeriodo = true;
+    else if(periodo === 'custom') {
+      passPeriodo = (!dIni || (f.dataEvento && f.dataEvento >= dIni)) &&
+                    (!dFim || (f.dataEvento && f.dataEvento <= dFim));
+    }
+    return passPeriodo &&
       (!q || normStr(f.nomeFeirao).includes(q)) &&
-      (!qr || f.recrutadorId===qr || f.recrutadorNome===qr) &&
+      (!selFeiraoIds.size || selFeiraoIds.has(f.id)) &&
+      (!selRecIds.size || selRecIds.has(f.recrutadorId)) &&
       (!qs || f.statusFeirao===qs);
   });
 
+  const periodoLabels = {
+    mes: `em ${monthLabel}`,
+    todos: 'no total',
+    custom: 'no período selecionado',
+  };
   const countEl = document.getElementById('feiraos-count-label');
-  if(countEl) countEl.textContent = `${list.length} feirão(ões) em ${monthLabel}`;
+  if(countEl) countEl.textContent = `${list.length} feirão(ões) ${periodoLabels[periodo]||''}`;
 
   const container = document.getElementById('feiraos-by-month');
   if(!container) return;
 
   if(!list.length){
-    container.innerHTML = `<div class="card"><div class="card-body" style="text-align:center;padding:32px;color:var(--gray-500)">Nenhum feirão em <strong>${monthLabel}</strong></div></div>`;
+    container.innerHTML = `<div style="text-align:center;padding:32px 12px;color:var(--gray-500);font-size:.85rem">Nenhum feirão encontrado ${periodoLabels[periodo]||''}.</div>`;
     return;
   }
 
   list.sort((a,b)=>(a.dataEvento||'').localeCompare(b.dataEvento||''));
 
-  const rows = list.map(f => {
+  container.innerHTML = list.map(f => {
     const count = cands.filter(c=>c.feiraoId===f.id).length;
     const admCount = cands.filter(c=>c.feiraoId===f.id&&c.admitido).length;
     const isAberto = f.statusFeirao==='ABERTO';
     const badge = isAberto
       ? '<span class="badge badge-green">Aberto</span>'
       : '<span class="badge badge-gray">Encerrado</span>';
-    return `<tr>
-      <td><strong>${esc(f.nomeFeirao)}</strong></td>
-      <td>${f.dataEvento ? fmt(f.dataEvento) : '—'}</td>
-      <td>${esc(f.localEvento||'—')}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(f.enderecoCompleto||'')}">${esc(f.enderecoCompleto||'—')}</td>
-      <td>${esc(f.recrutadorNome||'—')}</td>
-      <td>${badge}</td>
-      <td><span class="badge badge-orange">${admCount}</span></td>
-      <td><span class="badge badge-blue">${count}</span></td>
-      <td>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="navigate('candidatos');document.getElementById('f-feirao-cand').value='${f.id}';renderCandidatos()">Ver</button>
-          <button class="btn btn-secondary btn-sm" onclick="openFeiraModal('${f.id}')">✏</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleFeirao('${f.id}')">${isAberto?'Encerrar':'Reabrir'}</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteFeirao('${f.id}')">✕</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome do Feirão</th>
-              <th>Data</th>
-              <th>Local / Cidade</th>
-              <th>Endereço</th>
-              <th>Recrutador</th>
-              <th>Status</th>
-              <th>Admitidos</th>
-              <th>Candidatos</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+    return `<div class="feirao-card">
+      <div class="feirao-card-top">
+        <div class="feirao-card-name">${esc(f.nomeFeirao)}</div>
+        ${badge}
+      </div>
+      <div class="feirao-card-meta">
+        📅 ${f.dataEvento ? fmt(f.dataEvento) : '—'}<br/>
+        📍 ${esc(f.localEvento||'—')}${f.enderecoCompleto ? ' · '+esc(f.enderecoCompleto) : ''}<br/>
+        🧑‍💼 ${esc(f.recrutadorNome||'—')}
+      </div>
+      <div class="feirao-card-badges">
+        <span class="badge badge-orange">${admCount} admitido(s)</span>
+        <span class="badge badge-blue">${count} candidato(s)</span>
+      </div>
+      <div class="feirao-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="navigate('candidatos');document.getElementById('f-feirao-cand').value='${f.id}';renderCandidatos()">Ver</button>
+        <button class="btn btn-secondary btn-sm" onclick="openFeiraModal('${f.id}')">✏ Editar</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleFeirao('${f.id}')">${isAberto?'Encerrar':'Reabrir'}</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFeirao('${f.id}')">✕</button>
       </div>
     </div>`;
+  }).join('');
 }
 
 function clearFeiraFilters() {
   document.getElementById('f-search-feirao').value='';
-  document.getElementById('f-search-recrutador').value='';
   document.getElementById('f-status-feirao').value='';
+  document.getElementById('f-periodo').value='mes';
+  document.getElementById('f-data-custom-row').style.display='none';
+  document.getElementById('f-data-ini').value='';
+  document.getElementById('f-data-fim').value='';
+  window._ffFilters.feiraoIds = new Set();
+  window._ffFilters.recIds = new Set();
+  renderMsFilterPanels();
   renderFeiraos();
 }
 
@@ -4211,6 +4399,7 @@ async function initApp() {
 
   window._appReady = true;
   await seedIfEmpty();
+  await autoEncerrarFeiroesVencidos({silent:true});
   populateFeiraoSelects();
   populateAnRecSelect();
   renderDashboard();
