@@ -639,7 +639,8 @@ tbody td { padding: 5px 10px; color: var(--gray-700); vertical-align: middle; wh
 .feirao-card-actions .btn { font-size: .7rem; padding: 3px 7px; }
 
 /* Multi-select dropdown (Feirão / Recrutador) */
-.ms-dropdown { position: relative; flex: 1; min-width: 0; }
+.ms-dropdown { position: relative; min-width: 170px; }
+.ff-row .ms-dropdown { flex: 1; min-width: 0; }
 .ms-dropdown > button { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; gap: 4px; }
 .ms-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 200px; background: var(--white);
   border: 1px solid var(--gray-300); border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,.12); z-index: 200; max-height: 220px; overflow-y: auto; padding: 6px; }
@@ -914,6 +915,18 @@ thead th {
           <input id="imp-edit-cidade" type="text" placeholder="Cidade - UF"/>
         </div>
         <div class="form-group" style="grid-column:1/-1">
+          <label>Feirão</label>
+          <select id="imp-edit-feirao">
+            <option value="">Usar o feirão padrão selecionado na tela de importação</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Recrutador (opcional)</label>
+          <select id="imp-edit-recrutador">
+            <option value="">Usar o recrutador responsável pelo feirão</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
           <label>Observações</label>
           <textarea id="imp-edit-obs" placeholder="Observações opcionais…" style="min-height:60px"></textarea>
         </div>
@@ -967,12 +980,18 @@ thead th {
       </div>
       <!-- Filtros (vindos do Analytics) -->
       <div class="filter-bar" style="margin-bottom:20px">
-        <select id="an-feirao" onchange="renderDashboard()">
-          <option value="">Todos os Feirões</option>
-        </select>
-        <select id="an-rec" onchange="renderDashboard()">
-          <option value="">Todos os Recrutadores</option>
-        </select>
+        <div class="ms-dropdown" id="ms-dropdown-an-feirao">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('an-feirao')">
+            <span id="ms-label-an-feirao">Feirões</span> <span>▾</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-an-feirao"></div>
+        </div>
+        <div class="ms-dropdown" id="ms-dropdown-an-rec">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('an-rec')">
+            <span id="ms-label-an-rec">Recrutadores</span> <span>▾</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-an-rec"></div>
+        </div>
 
         <button class="btn btn-secondary btn-sm" onclick="clearDashFilters()">Limpar</button>
       </div>
@@ -1074,12 +1093,26 @@ thead th {
         </div>
       </div>
       <div class="filter-bar">
-        <select id="f-feirao-cand" onchange="renderCandidatos(true)">
-          <option value="">Todos os Feirões</option>
-        </select>
-        <select id="f-rec-cand" onchange="renderCandidatos(true)">
-          <option value="">Todos os Recrutadores</option>
-        </select>
+        <input id="f-nome-cand" type="text" placeholder="🔍 Nome ou CPF…" oninput="debouncedRenderCandidatos()" style="min-width:170px"/>
+        <input id="f-cidade-cand" type="text" placeholder="Cidade / Local…" oninput="debouncedRenderCandidatos()" style="min-width:150px"/>
+        <div class="ms-dropdown" id="ms-dropdown-cand-feirao">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('cand-feirao')">
+            <span id="ms-label-cand-feirao">Feirões</span> <span>▾</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-cand-feirao"></div>
+        </div>
+        <div class="ms-dropdown" id="ms-dropdown-cand-rec">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('cand-rec')">
+            <span id="ms-label-cand-rec">Recrutadores</span> <span>▾</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-cand-rec"></div>
+        </div>
+        <div class="ms-dropdown" id="ms-dropdown-cand-cargo">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('cand-cargo')">
+            <span id="ms-label-cand-cargo">Cargo</span> <span>▾</span>
+          </button>
+          <div class="ms-panel" id="ms-panel-cand-cargo"></div>
+        </div>
         <select id="f-status-cand" onchange="renderCandidatos(true)">
           <option value="">Status</option>
           <option value="APROVADO">✅ Aprovado</option>
@@ -1093,9 +1126,7 @@ thead th {
           <option value="DOCUMENTACAO">📄 Documentação</option>
           <option value="ADMITIDO">✅ Admitido</option>
         </select>
-        <input id="f-cidade-cand" type="text" placeholder="Cidade / Local…" oninput="debouncedRenderCandidatos()" style="min-width:150px"/>
         <button class="btn btn-secondary btn-sm" onclick="clearCandFilters()">Limpar</button>
-        <input type="hidden" id="f-nome-cand" value=""/>
         <input type="hidden" id="f-ant-cand" value=""/>
         <input type="hidden" id="f-recont-cand" value=""/>
         <input type="hidden" id="f-admitido-cand" value=""/>
@@ -1235,17 +1266,17 @@ thead th {
               <input id="f-search-feirao" type="text" placeholder="🔎 Buscar por nome…" oninput="renderFeiraos()"/>
             </div>
             <div class="ff-row">
-              <div class="ms-dropdown" id="ms-dropdown-feirao">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('feirao')">
-                  <span id="ms-feirao-label">Feirões</span> <span>▾</span>
+              <div class="ms-dropdown" id="ms-dropdown-cal-feirao">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('cal-feirao')">
+                  <span id="ms-label-cal-feirao">Feirões</span> <span>▾</span>
                 </button>
-                <div class="ms-panel" id="ms-panel-feirao"></div>
+                <div class="ms-panel" id="ms-panel-cal-feirao"></div>
               </div>
-              <div class="ms-dropdown" id="ms-dropdown-rec">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('rec')">
-                  <span id="ms-rec-label">Recrutadores</span> <span>▾</span>
+              <div class="ms-dropdown" id="ms-dropdown-cal-rec">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMsDropdown('cal-rec')">
+                  <span id="ms-label-cal-rec">Recrutadores</span> <span>▾</span>
                 </button>
-                <div class="ms-panel" id="ms-panel-rec"></div>
+                <div class="ms-panel" id="ms-panel-cal-rec"></div>
               </div>
             </div>
             <div class="ff-row">
@@ -1284,17 +1315,26 @@ thead th {
     <div id="page-importar" class="page">
       <div style="margin-bottom:20px">
         <h2 style="font-size:1.2rem;font-weight:800;color:var(--blue-800)">Importar Excel</h2>
-        <p class="text-muted text-sm">Importe candidatos via planilha .xlsx com validação automática</p>
+        <p class="text-muted text-sm">Importe candidatos ou feirões via planilha .xlsx com validação automática</p>
       </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-sm" id="imp-tab-btn-cand" onclick="impSwitchTab('candidatos')" style="background:var(--blue-600);color:#fff">👤 Candidatos</button>
+        <button class="btn btn-sm" id="imp-tab-btn-feir" onclick="impSwitchTab('feiroes')" style="background:var(--gray-100);color:var(--gray-700)">🏢 Feirões</button>
+      </div>
+
+      <!-- ABA: IMPORTAR CANDIDATOS -->
+      <div id="imp-tab-candidatos">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px" class="import-grid">
         <div class="card">
           <div class="card-header"><span class="card-title">Configuração da Importação</span></div>
           <div class="card-body">
             <div class="form-group" style="margin-bottom:14px">
-              <label>Feirão de destino *</label>
-              <select id="imp-feirao">
-                <option value="">Selecione um feirão…</option>
+              <label>Feirão padrão (opcional)</label>
+              <select id="imp-feirao" onchange="if(importPreviewData.length) renderImportPreview(importPreviewData)">
+                <option value="">Nenhum — usar a coluna "Feirão" da planilha</option>
               </select>
+              <small class="text-muted" style="display:block;margin-top:4px">Usado apenas para linhas em que a coluna <strong>Feirão</strong> da planilha estiver vazia.</small>
             </div>
             <div class="drop-zone" id="drop-zone" onclick="document.getElementById('imp-file').click()"
               ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -1302,7 +1342,7 @@ thead th {
               ondrop="handleDrop(event)">
               <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               <p>Arraste o arquivo .xlsx ou clique para selecionar</p>
-              <small>Colunas reconhecidas: nome, cpf, telefone, cargo, cidade, endereco, admitido, statusProcesso, antecedentes, recontratacao, motivoReprovacao, observacoes, <strong>dataInclusao</strong> (opcional). A planilha pode ter colunas extras — elas serão ignoradas automaticamente.</small>
+              <small>Colunas reconhecidas: nome, cpf, telefone, cargo, cidade, endereco, <strong>feirao</strong>, <strong>recrutador</strong>, admitido, statusProcesso, antecedentes, recontratacao, motivoReprovacao, observacoes, dataInclusao (opcional). Preencha a coluna <strong>feirao</strong> com o nome exato do feirão de cada candidato para importar de uma vez candidatos de vários feirões diferentes — quem não tiver essa coluna preenchida usa o "Feirão padrão" selecionado acima. A coluna <strong>recrutador</strong> é opcional: se vazia, usa o recrutador responsável pelo feirão; se preenchida, precisa bater com um recrutador já cadastrado. A planilha pode ter colunas extras — elas serão ignoradas automaticamente.</small>
             </div>
             <input id="imp-file" type="file" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelect(event)"/>
             <div id="imp-status" style="margin-top:12px"></div>
@@ -1330,6 +1370,56 @@ thead th {
             <p class="text-muted text-sm text-center" style="padding:30px 0">Nenhum arquivo selecionado</p>
           </div>
         </div>
+      </div>
+      </div>
+
+      <!-- ABA: IMPORTAR FEIRÕES EM LOTE -->
+      <div id="imp-tab-feiroes" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px" class="import-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Configuração da Importação</span></div>
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label>Recrutador padrão (opcional)</label>
+              <select id="impf-recrutador-padrao">
+                <option value="">Nenhum — usar a coluna "Recrutador" da planilha</option>
+              </select>
+              <small class="text-muted" style="display:block;margin-top:4px">Usado apenas para linhas em que a coluna <strong>Recrutador</strong> estiver vazia. Se o nome informado (na planilha ou aqui) não existir no cadastro, um novo recrutador é criado automaticamente.</small>
+            </div>
+            <div class="drop-zone" id="drop-zone-f" onclick="document.getElementById('impf-file').click()"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="handleDropFeiroes(event)">
+              <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Arraste o arquivo .xlsx ou clique para selecionar</p>
+              <small>Colunas reconhecidas: <strong>nome</strong>, <strong>data</strong> (DD/MM/AAAA), <strong>local</strong>, endereco, recrutador, <strong>status</strong> (opcional) e observacoes. Se a coluna <strong>status</strong> não for preenchida, o sistema define automaticamente <strong>Aberto</strong> ou <strong>Encerrado</strong> comparando a data do evento com a data de hoje — igual ao que já acontece com feirões cadastrados manualmente. Um evento é criado automaticamente no Calendário para cada feirão importado. A planilha pode ter colunas extras — elas serão ignoradas.</small>
+            </div>
+            <input id="impf-file" type="file" accept=".xlsx,.xls" style="display:none" onchange="handleFileSelectFeiroes(event)"/>
+            <div id="impf-status" style="margin-top:12px"></div>
+            <div style="margin-top:12px">
+              <button class="btn btn-secondary btn-sm" onclick="downloadTemplateFeiroes()">Baixar Modelo .xlsx</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="card-header">
+            <span class="card-title">Preview da Importação</span>
+            <button class="btn btn-primary btn-sm" id="btn-impf-confirm" onclick="confirmImportFeiroes()" style="display:none">Confirmar Importação</button>
+          </div>
+          <div id="impf-errors-wrap" style="display:none;border-bottom:1px solid var(--gray-200)">
+            <div style="padding:12px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+              <span style="font-size:.82rem;font-weight:700;color:var(--red)">⚠ Registros com Erro</span>
+              <button class="btn btn-secondary btn-sm" onclick="toggleImpfErrors()" id="btn-toggle-errs-f" style="font-size:.75rem;padding:3px 10px">▲ Ocultar</button>
+            </div>
+            <div id="impf-errors" style="padding:10px 20px 14px;max-height:220px;overflow-y:auto">
+              <p class="text-muted text-sm">✅ Nenhum erro registrado.</p>
+            </div>
+          </div>
+          <div class="card-body" id="impf-preview" style="flex:1">
+            <p class="text-muted text-sm text-center" style="padding:30px 0">Nenhum arquivo selecionado</p>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -1836,6 +1926,7 @@ function confirmClearAllData() {
       toast('Todos os dados foram apagados! ✓', 'success');
       populateFeiraoSelects();
       populateAnRecSelect();
+      refreshMsFilters();
       renderDashboard();
     } catch(e) {
       console.error('Erro ao zerar dados:', e);
@@ -1946,9 +2037,9 @@ function navigate(page) {
 
 function refreshPage(page) {
   if(page==='feiraos') page='calendario';
-  if(page==='dashboard') { populateFeiraoSelects(); populateAnRecSelect(); renderDashboard(); }
-  if(page==='candidatos') { populateFeiraoSelects(); populateAnRecSelect(); renderCandidatos(); }
-  if(page==='calendario') { autoEncerrarFeiroesVencidos(); populateFeiraoSelects(); populateAnRecSelect(); renderMsFilterPanels(); renderCalendar(); renderFeiraos(); }
+  if(page==='dashboard') { populateFeiraoSelects(); populateAnRecSelect(); refreshMsFilters(); renderDashboard(); }
+  if(page==='candidatos') { populateFeiraoSelects(); populateAnRecSelect(); refreshMsFilters(); renderCandidatos(); }
+  if(page==='calendario') { autoEncerrarFeiroesVencidos(); populateFeiraoSelects(); populateAnRecSelect(); refreshMsFilters(); renderCalendar(); renderFeiraos(); }
   if(page==='importar') populateFeiraoSelects();
   if(page==='recrutadores') renderRecrutadores();
 }
@@ -1989,7 +2080,7 @@ function confirm_(msg, fn) {
 // ═══════════════════════════════════════
 function populateFeiraoSelects() {
   const feiraos = DB.feiraos();
-  const ids = ['f-feirao-cand','an-feirao','imp-feirao','mc-feirao','mev-feirao-link'];
+  const ids = ['imp-feirao','mc-feirao','mev-feirao-link'];
   ids.forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
@@ -2007,7 +2098,7 @@ function populateFeiraoSelects() {
 }
 
 function populateAnRecSelect() {
-  const recIds = ['an-rec','f-rec-cand'];
+  const recIds = [];
   recIds.forEach(id => {
     const sel = document.getElementById(id);
     if(!sel) return;
@@ -2254,11 +2345,13 @@ async function saveFeirao() {
       toast('Feirão criado!','success');
     }
     closeModal('modal-feirao');
+    refreshMsFilters();
     renderFeiraos();
     return;
   }
   await DB.saveFeiraos(all);
   closeModal('modal-feirao');
+  refreshMsFilters();
   renderFeiraos();
 }
 
@@ -2270,6 +2363,7 @@ function deleteFeirao(id) {
     if (candsDoFeirao.length) await DB.deleteCandidatosByIds(candsDoFeirao);
     if (eventosDoFeirao.length) await DB.deleteEventosByIds(eventosDoFeirao);
     toast('Feirão excluído!','success');
+    refreshMsFilters();
     renderFeiraos();
   });
 }
@@ -2321,9 +2415,65 @@ async function autoEncerrarFeiroesVencidos(opts) {
 }
 
 // ═══════════════════════════════════════
-// FILTROS MULTI-SELEÇÃO (Feirões / Recrutadores) do painel lateral
+// FILTROS MULTI-SELEÇÃO GENÉRICOS (Feirão / Recrutador)
+// Usado no Calendário (cal-feirao/cal-rec), em Candidatos (cand-feirao/cand-rec)
+// e em Analytics/Dashboard (an-feirao/an-rec). Cada "key" tem seu próprio
+// conjunto de ids selecionados, painel de checkboxes e rótulo do botão.
 // ═══════════════════════════════════════
-window._ffFilters = { feiraoIds: new Set(), recIds: new Set() };
+window._msState = {};  // key -> Set de ids selecionados
+window._msMeta  = {};  // key -> { items:[{id,name}], labelBase, onChange }
+
+// Ids que foram selecionados automaticamente pela sincronização cruzada
+// entre Feirões ⇄ Recrutadores na aba Analíticas (para poder desfazer a
+// auto-seleção quando o vínculo deixar de existir, sem mexer em seleções
+// feitas manualmente pelo usuário).
+window._anAuto = { feirao: new Set(), rec: new Set() };
+
+function _msGetSet(key) {
+  if(!window._msState[key]) window._msState[key] = new Set();
+  return window._msState[key];
+}
+
+// Sincroniza a seleção de Recrutadores a partir dos Feirões selecionados
+// na aba Analíticas: cada feirão selecionado já marca automaticamente o
+// seu recrutador responsável no filtro de Recrutadores.
+function _syncAnRecFromFeirao() {
+  const selFeirao = _msGetSet('an-feirao');
+  const recSet = _msGetSet('an-rec');
+  const linkedRecIds = new Set(
+    DB.feiraos().filter(f => selFeirao.has(f.id) && f.recrutadorId).map(f => f.recrutadorId)
+  );
+  // Remove auto-seleções antigas que não são mais necessárias
+  Array.from(window._anAuto.rec).forEach(id => {
+    if(!linkedRecIds.has(id)) { recSet.delete(id); window._anAuto.rec.delete(id); }
+  });
+  // Adiciona os recrutadores dos feirões selecionados agora
+  linkedRecIds.forEach(id => {
+    if(!recSet.has(id)) { recSet.add(id); window._anAuto.rec.add(id); }
+  });
+  _renderMsPanelBody('an-rec');
+}
+
+// Sincroniza a seleção de Feirões a partir dos Recrutadores selecionados
+// na aba Analíticas: cada recrutador selecionado já marca automaticamente
+// todos os feirões daquele recrutador no filtro de Feirões.
+function _syncAnFeiraoFromRec() {
+  const selRec = _msGetSet('an-rec');
+  const feiraoSet = _msGetSet('an-feirao');
+  const linkedFeiraoIds = new Set(
+    DB.feiraos().filter(f => selRec.has(f.recrutadorId)).map(f => f.id)
+  );
+  Array.from(window._anAuto.feirao).forEach(id => {
+    if(!linkedFeiraoIds.has(id)) { feiraoSet.delete(id); window._anAuto.feirao.delete(id); }
+  });
+  linkedFeiraoIds.forEach(id => {
+    if(!feiraoSet.has(id)) { feiraoSet.add(id); window._anAuto.feirao.add(id); }
+  });
+  _renderMsPanelBody('an-feirao');
+}
+
+function anFeiraoChanged() { _syncAnRecFromFeirao(); renderDashboard(); }
+function anRecChanged() { _syncAnFeiraoFromRec(); renderDashboard(); }
 
 function toggleMsDropdown(key) {
   const panel = document.getElementById('ms-panel-' + key);
@@ -2340,57 +2490,89 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function renderMsFilterPanels() {
-  const feiraos = DB.feiraos().slice().sort((a,b)=>(a.nomeFeirao||'').localeCompare(b.nomeFeirao||''));
-  const recs = DB.recrutadores().slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+// Registra/atualiza um filtro multi-seleção. Chamado sempre que a lista de
+// feirões ou recrutadores pode ter mudado (navegação de página, criar/editar/
+// excluir feirão ou recrutador, etc).
+function registerMsFilter(key, items, labelBase, onChangeFnName) {
+  if(!document.getElementById('ms-panel-' + key)) return; // essa tela não tem esse filtro
+  window._msMeta[key] = { items, labelBase, onChange: onChangeFnName };
+  _renderMsPanelBody(key);
+}
 
-  const panelFeirao = document.getElementById('ms-panel-feirao');
-  if(panelFeirao) {
-    panelFeirao.innerHTML = (!feiraos.length)
-      ? '<div class="ms-empty">Nenhum feirão cadastrado.</div>'
-      : `<div class="ms-actions"><span onclick="msSelectAll('feirao')">Marcar todos</span><span onclick="msClearAll('feirao')">Limpar</span></div>` +
-        feiraos.map(f => `<label><input type="checkbox" value="${f.id}" ${window._ffFilters.feiraoIds.has(f.id)?'checked':''} onchange="msToggle('feirao','${f.id}')"/> ${esc(f.nomeFeirao)}</label>`).join('');
+function _renderMsPanelBody(key) {
+  const meta = window._msMeta[key];
+  if(!meta) return;
+  const set = _msGetSet(key);
+  const panel = document.getElementById('ms-panel-' + key);
+  if(panel) {
+    panel.innerHTML = (!meta.items.length)
+      ? `<div class="ms-empty">Nenhum registro cadastrado.</div>`
+      : `<div class="ms-actions"><span onclick="msSelectAll('${key}')">Marcar todos</span><span onclick="msClearAll('${key}')">Limpar</span></div>` +
+        meta.items.map(it => `<label><input type="checkbox" value="${it.id}" ${set.has(it.id)?'checked':''} onchange="msToggle('${key}','${it.id}')"/> ${esc(it.name)}</label>`).join('');
   }
+  const lbl = document.getElementById('ms-label-' + key);
+  if(lbl) lbl.textContent = set.size ? `${meta.labelBase} (${set.size})` : meta.labelBase;
+}
 
-  const panelRec = document.getElementById('ms-panel-rec');
-  if(panelRec) {
-    panelRec.innerHTML = (!recs.length)
-      ? '<div class="ms-empty">Nenhum recrutador cadastrado.</div>'
-      : `<div class="ms-actions"><span onclick="msSelectAll('rec')">Marcar todos</span><span onclick="msClearAll('rec')">Limpar</span></div>` +
-        recs.map(r => `<label><input type="checkbox" value="${r.id}" ${window._ffFilters.recIds.has(r.id)?'checked':''} onchange="msToggle('rec','${r.id}')"/> ${esc(r.nome)}</label>`).join('');
-  }
-
-  updateMsLabels();
+function _fireMsChange(key) {
+  const meta = window._msMeta[key];
+  if(meta && meta.onChange && typeof window[meta.onChange] === 'function') window[meta.onChange]();
 }
 
 function msToggle(key, id) {
-  const set = key==='feirao' ? window._ffFilters.feiraoIds : window._ffFilters.recIds;
+  const set = _msGetSet(key);
   if(set.has(id)) set.delete(id); else set.add(id);
-  updateMsLabels();
-  renderFeiraos();
+  _renderMsPanelBody(key);
+  _fireMsChange(key);
 }
 
 function msSelectAll(key) {
-  if(key==='feirao') window._ffFilters.feiraoIds = new Set(DB.feiraos().map(f=>f.id));
-  else window._ffFilters.recIds = new Set(DB.recrutadores().map(r=>r.id));
-  renderMsFilterPanels();
-  renderFeiraos();
-}
-function msClearAll(key) {
-  if(key==='feirao') window._ffFilters.feiraoIds = new Set();
-  else window._ffFilters.recIds = new Set();
-  renderMsFilterPanels();
-  renderFeiraos();
+  const meta = window._msMeta[key];
+  if(!meta) return;
+  window._msState[key] = new Set(meta.items.map(it => it.id));
+  _renderMsPanelBody(key);
+  _fireMsChange(key);
 }
 
-function updateMsLabels() {
-  const nF = window._ffFilters.feiraoIds.size;
-  const nR = window._ffFilters.recIds.size;
-  const lF = document.getElementById('ms-feirao-label');
-  const lR = document.getElementById('ms-rec-label');
-  if(lF) lF.textContent = nF ? `Feirões (${nF})` : 'Feirões';
-  if(lR) lR.textContent = nR ? `Recrutadores (${nR})` : 'Recrutadores';
+function msClearAll(key) {
+  window._msState[key] = new Set();
+  _renderMsPanelBody(key);
+  _fireMsChange(key);
 }
+
+// Reconstrói todos os filtros multi-seleção registrados nesta sessão a
+// partir dos dados atuais de feirões/recrutadores (sem mexer na seleção do
+// usuário — só atualiza a lista de opções disponíveis).
+function refreshMsFilters() {
+  const feiraoItems = DB.feiraos().slice()
+    .sort((a,b)=>(a.nomeFeirao||'').localeCompare(b.nomeFeirao||''))
+    .map(f => ({ id:f.id, name:f.nomeFeirao }));
+  const recItems = DB.recrutadores().slice()
+    .sort((a,b)=>(a.nome||'').localeCompare(b.nome||''))
+    .map(r => ({ id:r.id, name:r.nome }));
+  const cargoMap = new Map(); // chave normalizada -> rótulo de exibição (primeira grafia encontrada)
+  DB.candidatos().forEach(c => {
+    const raw = (c.cargo||'').trim();
+    if(!raw) return;
+    const key = normStr(raw);
+    if(!cargoMap.has(key)) cargoMap.set(key, raw);
+  });
+  const cargoItems = Array.from(cargoMap.entries())
+    .sort((a,b)=>a[1].localeCompare(b[1]))
+    .map(([key,label]) => ({ id:key, name:label }));
+
+  registerMsFilter('cal-feirao', feiraoItems, 'Feirões', 'renderFeiraos');
+  registerMsFilter('cal-rec',    recItems,    'Recrutadores', 'renderFeiraos');
+  registerMsFilter('cand-feirao', feiraoItems, 'Feirões', 'renderCandidatosFiltered');
+  registerMsFilter('cand-rec',    recItems,    'Recrutadores', 'renderCandidatosFiltered');
+  registerMsFilter('cand-cargo',  cargoItems,  'Cargo', 'renderCandidatosFiltered');
+  registerMsFilter('an-feirao',  feiraoItems, 'Feirões', 'anFeiraoChanged');
+  registerMsFilter('an-rec',     recItems,    'Recrutadores', 'anRecChanged');
+}
+
+// Wrapper para o onChange dos filtros de Candidatos, já que renderCandidatos
+// aceita um parâmetro "resetPage" que deve ser true ao mudar filtros.
+function renderCandidatosFiltered() { renderCandidatos(true); }
 
 function onPeriodoChange() {
   const periodo = document.getElementById('f-periodo')?.value || 'mes';
@@ -2413,8 +2595,8 @@ function renderFeiraos() {
   const periodo = document.getElementById('f-periodo')?.value || 'mes';
   const dIni = document.getElementById('f-data-ini')?.value||'';
   const dFim = document.getElementById('f-data-fim')?.value||'';
-  const selFeiraoIds = window._ffFilters.feiraoIds;
-  const selRecIds = window._ffFilters.recIds;
+  const selFeiraoIds = _msGetSet('cal-feirao');
+  const selRecIds = _msGetSet('cal-rec');
 
   const ym = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
   const monthLabel = `${MESES[calMonth]} ${calYear}`;
@@ -2475,7 +2657,7 @@ function renderFeiraos() {
         <span class="badge badge-blue">${count} candidato(s)</span>
       </div>
       <div class="feirao-card-actions">
-        <button class="btn btn-secondary btn-sm" onclick="navigate('candidatos');document.getElementById('f-feirao-cand').value='${f.id}';renderCandidatos()">Ver</button>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('candidatos');window._msState['cand-feirao']=new Set(['${f.id}']);refreshMsFilters();renderCandidatos(true)">Ver</button>
         <button class="btn btn-secondary btn-sm" onclick="openFeiraModal('${f.id}')">✏ Editar</button>
         <button class="btn btn-secondary btn-sm" onclick="toggleFeirao('${f.id}')">${isAberto?'Encerrar':'Reabrir'}</button>
         <button class="btn btn-danger btn-sm" onclick="deleteFeirao('${f.id}')">✕</button>
@@ -2491,9 +2673,8 @@ function clearFeiraFilters() {
   document.getElementById('f-data-custom-row').style.display='none';
   document.getElementById('f-data-ini').value='';
   document.getElementById('f-data-fim').value='';
-  window._ffFilters.feiraoIds = new Set();
-  window._ffFilters.recIds = new Set();
-  renderMsFilterPanels();
+  msClearAll('cal-feirao');
+  msClearAll('cal-rec');
   renderFeiraos();
 }
 
@@ -2722,9 +2903,10 @@ function _isReprovadoConsolidado(c) {
 
 function getFilteredCandidatos() {
   let cands = DB.candidatos();
-  const fid    = document.getElementById('f-feirao-cand')?.value||'';
+  const selFeiraoIds = _msGetSet('cand-feirao');
+  const selRecIds    = _msGetSet('cand-rec');
+  const selCargoIds  = _msGetSet('cand-cargo');
   const q      = normStr(document.getElementById('f-nome-cand')?.value||'');
-  const qr     = document.getElementById('f-rec-cand')?.value||'';
   const qs     = document.getElementById('f-status-cand')?.value||'';
   const qa     = document.getElementById('f-ant-cand')?.value||'';
   const qrecont= document.getElementById('f-recont-cand')?.value||'';
@@ -2743,9 +2925,10 @@ function getFilteredCandidatos() {
     else if (qs)                 statusOk = c.statusProcesso === qs;
 
     return (
-      (!fid    || c.feiraoId === fid) &&
+      (!selFeiraoIds.size || selFeiraoIds.has(c.feiraoId)) &&
       (!q      || normStr(c.nome).includes(q) || normStr(c.cpf).includes(q) || normStr(c.cr||'').includes(q) || normStr(c.cargo||'').includes(q)) &&
-      (!qr     || c.recrutadorId === qr) &&
+      (!selRecIds.size || selRecIds.has(c.recrutadorId)) &&
+      (!selCargoIds.size || selCargoIds.has(normStr(c.cargo||''))) &&
       statusOk &&
       (!qa     || c.antecedentes === qa) &&
       (!qrecont|| c.recontratacao === qrecont) &&
@@ -2842,7 +3025,10 @@ function candGoPage(p) {
 
 function clearCandFilters() {
   ['f-nome-cand','f-cidade-cand'].forEach(id=>document.getElementById(id).value='');
-  ['f-feirao-cand','f-rec-cand','f-status-cand','f-ant-cand','f-recont-cand','f-admitido-cand','f-etapa-cand'].forEach(id=>document.getElementById(id).value='');
+  ['f-status-cand','f-ant-cand','f-recont-cand','f-admitido-cand','f-etapa-cand'].forEach(id=>document.getElementById(id).value='');
+  msClearAll('cand-feirao');
+  msClearAll('cand-rec');
+  msClearAll('cand-cargo');
   renderCandidatos(true);
 }
 
@@ -3044,6 +3230,7 @@ async function saveRecrutador() {
   populateMfRecSelect(document.getElementById('mf-rec-id')?.value||'');
   populateAnRecSelect();
   populateFeiraoSelects();
+  refreshMsFilters();
 }
 
 function deleteRecrutador(id) {
@@ -3119,9 +3306,9 @@ function renderDashboard() {
   let cands = DB.candidatos();
   const feiraos = DB.feiraos();
   // Aplica filtros (mesmos do antigo Analytics)
-  const fid = document.getElementById('an-feirao')?.value||'';
-  const qr  = document.getElementById('an-rec')?.value||'';
-  cands = cands.filter(c=>(!fid||c.feiraoId===fid)&&(!qr||c.recrutadorId===qr));
+  const selFeiraoIds = _msGetSet('an-feirao');
+  const selRecIds = _msGetSet('an-rec');
+  cands = cands.filter(c=>(!selFeiraoIds.size||selFeiraoIds.has(c.feiraoId))&&(!selRecIds.size||selRecIds.has(c.recrutadorId)));
 
   const total  = cands.length;
   const aprov  = cands.filter(c=>c.statusProcesso==='APROVADO').length;
@@ -3226,9 +3413,8 @@ function renderDashboard() {
 }
 
 function clearDashFilters() {
-  document.getElementById('an-feirao').value='';
-  document.getElementById('an-rec').value='';
-
+  msClearAll('an-feirao');
+  msClearAll('an-rec');
   renderDashboard();
 }
 
@@ -3345,6 +3531,8 @@ const IMPORT_FIELD_MAP = {
   cargo:            ['cargo','cargo pretendido','funcao','vaga'],
   cidade:           ['cidade','cidade uf','cidade/uf'],
   endereco:         ['endereco','endereco completo'],
+  feirao:           ['feirao','feirão','nome do feirao','feirao de destino','evento','nome do evento'],
+  recrutador:       ['recrutador','recrutador responsavel','nome do recrutador'],
   admitido:         ['admitido','admissao'],
   statusProcesso:   ['statusprocesso','status','status do processo'],
   antecedentes:     ['antecedentes','antecedentes criminais'],
@@ -3353,6 +3541,49 @@ const IMPORT_FIELD_MAP = {
   observacoes:      ['observacoes','obs','observacao'],
   dataInclusao:     ['datainclusao','data inclusao','data de inclusao','data cadastro','data de cadastro','data'],
 };
+
+// ── Localiza o feirão correspondente a um nome de planilha, ignorando
+// maiúsculas/minúsculas e acentos (mesmo critério usado em outros filtros).
+function findFeiraoByName(nome) {
+  if(!nome) return null;
+  const alvo = normStr(nome);
+  return DB.feiraos().find(f => normStr(f.nomeFeirao) === alvo) || null;
+}
+
+// ── Localiza o recrutador correspondente a um nome de planilha, mesma
+// lógica de comparação usada para feirões (ignora maiúsculas/acentos).
+function findRecrutadorByName(nome) {
+  if(!nome) return null;
+  const alvo = normStr(nome);
+  return DB.recrutadores().find(r => normStr(r.nome) === alvo) || null;
+}
+
+// ── Resolve qual feirão deve ser usado para uma linha da planilha:
+// 1) Se a linha tiver a coluna "Feirão" preenchida, tenta casar pelo nome.
+// 2) Caso contrário, usa o feirão padrão selecionado no combo (se houver).
+// Retorna { feirao, erro } onde erro é uma string quando não foi possível resolver.
+function resolveRowFeirao(dados, defaultFeirao) {
+  const nomeInformado = (dados.feirao||'').trim();
+  if(nomeInformado) {
+    const f = findFeiraoByName(nomeInformado);
+    if(f) return { feirao: f, erro: null };
+    return { feirao: null, erro: `Feirão "${nomeInformado}" não encontrado no cadastro` };
+  }
+  if(defaultFeirao) return { feirao: defaultFeirao, erro: null };
+  return { feirao: null, erro: 'Feirão não informado (preencha a coluna "Feirão" na planilha ou selecione um feirão padrão)' };
+}
+
+// ── Resolve o recrutador de uma linha: a coluna "Recrutador" é opcional —
+// quando vazia, mantém-se o recrutador responsável pelo feirão resolvido
+// (comportamento anterior). Quando preenchida, tenta casar pelo nome; se
+// não encontrar nenhum recrutador cadastrado com esse nome, retorna erro.
+function resolveRowRecrutador(dados) {
+  const nomeInformado = (dados.recrutador||'').trim();
+  if(!nomeInformado) return { recrutador: null, erro: null };
+  const r = findRecrutadorByName(nomeInformado);
+  if(r) return { recrutador: r, erro: null };
+  return { recrutador: null, erro: `Recrutador "${nomeInformado}" não encontrado no cadastro` };
+}
 
 // ── Extrai e normaliza os dados de uma linha da planilha, usando apenas
 // os campos definidos em IMPORT_FIELD_MAP (colunas extras são ignoradas).
@@ -3369,6 +3600,8 @@ function extractImportRow(r) {
     cargo: String(getCol(r,...IMPORT_FIELD_MAP.cargo)).trim(),
     cidade: String(getCol(r,...IMPORT_FIELD_MAP.cidade)).trim(),
     endereco: String(getCol(r,...IMPORT_FIELD_MAP.endereco)).trim(),
+    feirao: String(getCol(r,...IMPORT_FIELD_MAP.feirao)).trim(),
+    recrutador: String(getCol(r,...IMPORT_FIELD_MAP.recrutador)).trim(),
     admitido: isSim(getCol(r,...IMPORT_FIELD_MAP.admitido)),
     statusProcesso: mapStatus(getCol(r,...IMPORT_FIELD_MAP.statusProcesso)),
     antecedentes: mapAnt(getCol(r,...IMPORT_FIELD_MAP.antecedentes)),
@@ -3403,6 +3636,8 @@ function renderImportPreview(rows) {
   const errors = [];
   const valid = [];
   const dbCPFs = new Set(DB.candidatos().map(c=>normCPF(c.cpf)));
+  const defaultFid = document.getElementById('imp-feirao')?.value || '';
+  const defaultFeirao = defaultFid ? DB.feiraos().find(x=>x.id===defaultFid) : null;
   // CPFs já vistos dentro da própria planilha (detecta duplicatas internas)
   const seenInSheet = new Set();
 
@@ -3417,6 +3652,10 @@ function renderImportPreview(rows) {
     if(!cpf)  rowErrors.push('CPF ausente');
     else if(dbCPFs.has(cpfNorm)) rowErrors.push(`CPF já cadastrado no sistema (${cpf})`);
     else if(seenInSheet.has(cpfNorm)) rowErrors.push(`CPF duplicado na planilha (${cpf})`);
+    const { erro: feiraoErro } = resolveRowFeirao(dados, defaultFeirao);
+    if(feiraoErro) rowErrors.push(feiraoErro);
+    const { erro: recErro } = resolveRowRecrutador(dados);
+    if(recErro) rowErrors.push(recErro);
     if(cpfNorm) seenInSheet.add(cpfNorm);
     if(rowErrors.length) {
       // BUG FIX: usa o número de linha original da planilha (__rowNum, atribuído
@@ -3449,11 +3688,15 @@ function renderImportPreview(rows) {
     const dados = r.__extracted || extractImportRow(r);
     const cpf = dados.cpf;
     const nome = dados.nome;
-    const hasErr = !nome || !cpf || dbCPFs.has(normCPF(cpf));
+    const { erro: feiraoErro } = resolveRowFeirao(dados, defaultFeirao);
+    const { erro: recErro } = resolveRowRecrutador(dados);
+    const hasErr = !nome || !cpf || dbCPFs.has(normCPF(cpf)) || !!feiraoErro || !!recErro;
     const rowErrs = [];
     if(!nome) rowErrs.push('Nome ausente');
     if(!cpf) rowErrs.push('CPF ausente');
     else if(dbCPFs.has(normCPF(cpf))) rowErrs.push('CPF duplicado');
+    if(feiraoErro) rowErrs.push(feiraoErro);
+    if(recErro) rowErrs.push(recErro);
     return `<tr style="${hasErr?'background:var(--red-light)':''}">
       <td>${r.__rowNum}</td>
       ${cols.map(c=>`<td>${esc(String(r[c]||''))}</td>`).join('')}
@@ -3523,6 +3766,12 @@ function openImpEditModal(rowKey) {
   if(!dados.nome) rowErrors.push('Nome ausente');
   if(!dados.cpf)  rowErrors.push('CPF ausente');
   else if(existingCPFs.has(normCPF(dados.cpf))) rowErrors.push(`CPF já cadastrado no sistema (${dados.cpf})`);
+  const defaultFid0 = document.getElementById('imp-feirao')?.value || '';
+  const defaultFeirao0 = defaultFid0 ? DB.feiraos().find(x=>x.id===defaultFid0) : null;
+  const { erro: feiraoErro0 } = resolveRowFeirao(dados, defaultFeirao0);
+  if(feiraoErro0) rowErrors.push(feiraoErro0);
+  const { erro: recErro0 } = resolveRowRecrutador(dados);
+  if(recErro0) rowErrors.push(recErro0);
 
   // BUG FIX: usa __rowNum (número original e estável da linha na planilha)
   // em vez da posição atual no array, que muda quando outras linhas são excluídas.
@@ -3534,6 +3783,25 @@ function openImpEditModal(rowKey) {
   document.getElementById('imp-edit-cargo').value = dados.cargo || '';
   document.getElementById('imp-edit-cidade').value= dados.cidade|| '';
   document.getElementById('imp-edit-obs').value   = dados.observacoes || '';
+  const feiraoSel = document.getElementById('imp-edit-feirao');
+  const feiraoAtual = findFeiraoByName(dados.feirao);
+  feiraoSel.innerHTML = '<option value="">Usar o feirão padrão selecionado na tela de importação</option>' +
+    DB.feiraos().slice().sort((a,b)=>(a.nomeFeirao||'').localeCompare(b.nomeFeirao||'')).map(f =>
+      `<option value="${esc(f.nomeFeirao)}" ${feiraoAtual && feiraoAtual.id===f.id?'selected':''}>${esc(f.nomeFeirao)}</option>`
+    ).join('');
+  if(!feiraoAtual && dados.feirao) {
+    // Nome informado na planilha não bate com nenhum feirão cadastrado — mostra como está, sem selecionar nenhuma opção
+    feiraoSel.insertAdjacentHTML('afterbegin', `<option value="${esc(dados.feirao)}" selected>⚠ "${esc(dados.feirao)}" (não encontrado)</option>`);
+  }
+  const recSel = document.getElementById('imp-edit-recrutador');
+  const recAtual = findRecrutadorByName(dados.recrutador);
+  recSel.innerHTML = '<option value="">Usar o recrutador responsável pelo feirão</option>' +
+    DB.recrutadores().slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(r =>
+      `<option value="${esc(r.nome)}" ${recAtual && recAtual.id===r.id?'selected':''}>${esc(r.nome)}</option>`
+    ).join('');
+  if(!recAtual && dados.recrutador) {
+    recSel.insertAdjacentHTML('afterbegin', `<option value="${esc(dados.recrutador)}" selected>⚠ "${esc(dados.recrutador)}" (não encontrado)</option>`);
+  }
   openModal('modal-imp-edit');
 }
 
@@ -3550,6 +3818,8 @@ function saveImpEdit() {
   dados.telefone   = document.getElementById('imp-edit-tel').value.trim();
   dados.cargo      = document.getElementById('imp-edit-cargo').value.trim();
   dados.cidade     = document.getElementById('imp-edit-cidade').value.trim();
+  dados.feirao     = document.getElementById('imp-edit-feirao').value.trim();
+  dados.recrutador = document.getElementById('imp-edit-recrutador').value.trim();
   dados.observacoes= document.getElementById('imp-edit-obs').value.trim();
   r.__extracted = dados;
 
@@ -3580,9 +3850,7 @@ function removeImpRow(rowKey) {
 
 async function confirmImport() {
   const fid = document.getElementById('imp-feirao').value;
-  if(!fid){toast('Selecione um feirão de destino','error');return;}
-  const f = DB.feiraos().find(x=>x.id===fid);
-  if(!f){toast('Feirão não encontrado','error');return;}
+  const defaultFeirao = fid ? DB.feiraos().find(x=>x.id===fid) : null;
   // ── Usa o cache direto sem clonar — com 20k candidatos, .slice() desperdiça
   // centenas de ms e muita RAM. Empurramos direto no array do cache.
   const existingCPFs = new Set(window._cache.candidatos.map(c=>normCPF(c.cpf)));
@@ -3601,10 +3869,22 @@ async function confirmImport() {
       skipped.push({ row: r.__rowNum, nome: nome||'(sem nome)', errs });
       return;
     }
+    const { feirao: f, erro: feiraoErro } = resolveRowFeirao(dados, defaultFeirao);
+    if(!f) {
+      skipped.push({ row: r.__rowNum, nome: nome||'(sem nome)', errs: [feiraoErro] });
+      return;
+    }
+    const { recrutador: recOverride, erro: recErro } = resolveRowRecrutador(dados);
+    if(recErro) {
+      skipped.push({ row: r.__rowNum, nome: nome||'(sem nome)', errs: [recErro] });
+      return;
+    }
+    const { feirao: _feiraoRaw, recrutador: _recRaw, ...dadosSemExtras } = dados;
     const c = {
-      id:uid(), feiraoId:fid, feiraoNome:f.nomeFeirao, feiraoLocal:f.localEvento,
-      ...dados,
-      recrutadorId:f.recrutadorId, recrutadorNome:f.recrutadorNome,
+      id:uid(), feiraoId:f.id, feiraoNome:f.nomeFeirao, feiraoLocal:f.localEvento,
+      ...dadosSemExtras,
+      recrutadorId: recOverride ? recOverride.id : f.recrutadorId,
+      recrutadorNome: recOverride ? recOverride.nome : f.recrutadorNome,
     };
     applyRuleEngine(c);
     cands.push(c);
@@ -3700,16 +3980,383 @@ async function confirmImport() {
 }
 
 function downloadTemplate() {
+  const feiroesCadastrados = DB.feiraos().slice().sort((a,b)=>(a.nomeFeirao||'').localeCompare(b.nomeFeirao||''));
+  const exemploFeirao1 = feiroesCadastrados[0]?.nomeFeirao || 'Feirão GPS São Paulo';
+  const exemploFeirao2 = feiroesCadastrados[1]?.nomeFeirao || feiroesCadastrados[0]?.nomeFeirao || 'Feirão GPS Campinas';
+
+  // Aba principal — mesmas colunas da planilha exportada (Excel > Exportar),
+  // já com as colunas "feirao" e "recrutador" para permitir importar
+  // candidatos de vários feirões/recrutadores diferentes em um único arquivo.
   const ws = XLSX.utils.aoa_to_sheet([
-    ['nome','cpf','telefone','cargo','cidade','endereco','admitido','statusProcesso','antecedentes','recontratacao','dataInclusao'],
-    ['João Silva','123.456.789-00','(11) 91234-5678','Auxiliar de Limpeza','São Paulo - SP','Av. Paulista, 1000 – SP','NÃO','APROVADO','APROVADO','NUNCA_TRABALHOU_NA_GPS','15/01/2025'],
-    ['Maria Souza','987.654.321-00','(11) 98765-4321','Vigilante','Rio de Janeiro - RJ','Rua das Flores, 50 – RJ','SIM','APROVADO','APROVADO','NUNCA_TRABALHOU_NA_GPS','16/01/2025'],
+    ['nome','cpf','telefone','cargo','cidade','endereco','feirao','recrutador','admitido','statusProcesso','antecedentes','recontratacao','motivoReprovacao','observacoes','dataInclusao'],
+    ['João Silva','123.456.789-00','(11) 91234-5678','Auxiliar de Limpeza','São Paulo - SP','Av. Paulista, 1000 – SP', exemploFeirao1,'','NÃO','APROVADO','APROVADO','NUNCA_TRABALHOU_NA_GPS','','Disponibilidade imediata','15/01/2025'],
+    ['Maria Souza','987.654.321-00','(11) 98765-4321','Vigilante','Rio de Janeiro - RJ','Rua das Flores, 50 – RJ', exemploFeirao2,'','SIM','APROVADO','APROVADO','NUNCA_TRABALHOU_NA_GPS','','Já trabalhou como recepcionista','16/01/2025'],
+    ['Pedro Lima','111.222.333-44','(21) 99887-6655','Motorista','Belo Horizonte - MG','Rua Central, 200 – MG', exemploFeirao1,'','NÃO','REPROVADO','APROVADO','NUNCA_TRABALHOU_NA_GPS','CNH vencida','Reagendar quando regularizar CNH','17/01/2025'],
   ]);
   ws['!cols'] = [
-    {wch:22},{wch:16},{wch:18},{wch:22},{wch:18},{wch:30},{wch:10},{wch:14},{wch:14},{wch:24},{wch:14}
+    {wch:22},{wch:16},{wch:18},{wch:22},{wch:18},{wch:30},{wch:28},{wch:22},{wch:10},{wch:14},{wch:14},{wch:24},{wch:22},{wch:30},{wch:14}
   ];
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Candidatos');
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Candidatos');
+
+  // Aba de apoio — lista os feirões já cadastrados e seu recrutador responsável,
+  // para copiar os nomes exatos (evita erro de "não encontrado" por causa de
+  // nome digitado diferente do cadastro).
+  const wsFeiroes = XLSX.utils.aoa_to_sheet([
+    ['Nome do Feirão (copie exatamente para a coluna "feirao")','Local','Recrutador Responsável (copie para a coluna "recrutador", se quiser substituir)','Status'],
+    ...feiroesCadastrados.map(f => [f.nomeFeirao, f.localEvento||'', f.recrutadorNome||'', f.statusFeirao||'']),
+  ]);
+  wsFeiroes['!cols'] = [{wch:45},{wch:22},{wch:32},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsFeiroes,'Feirões Cadastrados');
+
   XLSX.writeFile(wb,'modelo_candidatos_gps.xlsx');
+}
+
+// ═══════════════════════════════════════
+// IMPORTAÇÃO EM LOTE DE FEIRÕES
+// Mesmo padrão da importação de candidatos (Excel + preview + validação),
+// só que criando feirões automaticamente. Quando a planilha não informa o
+// status, ele é calculado a partir da data do evento comparada com hoje —
+// igual à rotina autoEncerrarFeiroesVencidos já usada no resto do sistema.
+// ═══════════════════════════════════════
+
+function impSwitchTab(tab) {
+  const cand = document.getElementById('imp-tab-candidatos');
+  const feir = document.getElementById('imp-tab-feiroes');
+  const btnCand = document.getElementById('imp-tab-btn-cand');
+  const btnFeir = document.getElementById('imp-tab-btn-feir');
+  if(tab==='feiroes') {
+    cand.style.display='none'; feir.style.display='';
+    btnFeir.style.background='var(--blue-600)'; btnFeir.style.color='#fff';
+    btnCand.style.background='var(--gray-100)'; btnCand.style.color='var(--gray-700)';
+    populateImpfRecrutadorSelect();
+  } else {
+    feir.style.display='none'; cand.style.display='';
+    btnCand.style.background='var(--blue-600)'; btnCand.style.color='#fff';
+    btnFeir.style.background='var(--gray-100)'; btnFeir.style.color='var(--gray-700)';
+  }
+}
+
+function populateImpfRecrutadorSelect() {
+  const sel = document.getElementById('impf-recrutador-padrao');
+  if(!sel) return;
+  const cur = sel.value;
+  const recs = DB.recrutadores().slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  sel.innerHTML = '<option value="">Nenhum — usar a coluna "Recrutador" da planilha</option>' +
+    recs.map(r=>`<option value="${esc(r.nome)}">${esc(r.nome)}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
+let importPreviewDataFeiroes = [];
+let _impfRowKeySeq = 0;
+
+function handleDropFeiroes(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone-f').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file) processFileFeiroes(file);
+}
+function handleFileSelectFeiroes(e) { const file = e.target.files[0]; if(file) processFileFeiroes(file); }
+
+function processFileFeiroes(file) {
+  document.getElementById('impf-status').innerHTML = `<span class="badge badge-blue">Processando: ${esc(file.name)}</span>`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      rows.forEach((r,i) => { r.__rowKey = ++_impfRowKeySeq; r.__rowNum = i + 2; });
+      importPreviewDataFeiroes = rows;
+      renderImportPreviewFeiroes(rows);
+    } catch(err) {
+      document.getElementById('impf-status').innerHTML = `<span class="badge badge-red">Erro ao ler arquivo: ${err.message}</span>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Mapa de campos aceitos para a planilha de feirões → possíveis nomes de coluna
+const FEIRAO_IMPORT_FIELD_MAP = {
+  nomeFeirao:       ['nome','nomefeirao','nome do feirao','feirao','feirão','titulo','evento','nome do evento'],
+  dataEvento:       ['data','dataevento','data do evento','data feirao','data do feirao'],
+  localEvento:      ['local','localevento','local do evento','cidade','cidade uf','cidade/uf'],
+  enderecoCompleto: ['endereco','enderecocompleto','endereco completo'],
+  recrutador:       ['recrutador','recrutador responsavel','nome do recrutador','responsavel'],
+  status:           ['status','statusfeirao','situacao'],
+  observacoes:      ['observacoes','obs','observacao'],
+};
+
+function extractImportRowFeirao(r) {
+  return {
+    nomeFeirao:       String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.nomeFeirao)).trim(),
+    dataEvento:       parseDateCell(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.dataEvento)),
+    dataInformadaBruta: String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.dataEvento)).trim(),
+    localEvento:      String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.localEvento)).trim(),
+    enderecoCompleto: String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.enderecoCompleto)).trim(),
+    recrutador:       String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.recrutador)).trim(),
+    statusInformado:  String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.status)).trim(),
+    observacoes:      String(getCol(r,...FEIRAO_IMPORT_FIELD_MAP.observacoes)).trim(),
+  };
+}
+
+// ── Define o status do feirão: respeita o que veio preenchido na planilha;
+// na ausência dele, calcula automaticamente comparando a data do evento com hoje.
+function resolveStatusFeirao(dados) {
+  const map = {aberto:'ABERTO', encerrado:'ENCERRADO', fechado:'ENCERRADO', finalizado:'ENCERRADO'};
+  const informado = map[normStr(dados.statusInformado)];
+  if(informado) return informado;
+  if(dados.dataEvento) return dados.dataEvento < _hojeStr() ? 'ENCERRADO' : 'ABERTO';
+  return 'ABERTO';
+}
+
+// ── Resolve o recrutador de uma linha (planilha > recrutador padrão selecionado).
+// Se o nome não existir no cadastro, sinaliza que será criado — não é um erro.
+function resolveRowRecrutadorFeirao(dados, defaultRecNome) {
+  const nomeInformado = (dados.recrutador||'').trim() || (defaultRecNome||'').trim();
+  if(!nomeInformado) return { nome:'', willCreate:false, erro:'Recrutador não informado (preencha a coluna "Recrutador" ou selecione um recrutador padrão)' };
+  const r = findRecrutadorByName(nomeInformado);
+  if(r) return { nome:r.nome, willCreate:false, erro:null };
+  return { nome:nomeInformado, willCreate:true, erro:null };
+}
+
+function renderImportPreviewFeiroes(rows) {
+  const errors = [];
+  const valid = [];
+  const existentes = new Set(DB.feiraos().map(f => normStr(f.nomeFeirao)+'|'+(f.dataEvento||'')));
+  const defaultRecNome = document.getElementById('impf-recrutador-padrao')?.value || '';
+  const seenInSheet = new Set();
+
+  rows.forEach(r => {
+    if(!r.__extracted) r.__extracted = extractImportRowFeirao(r);
+    const dados = r.__extracted;
+    const rowErrors = [];
+    if(!dados.nomeFeirao) rowErrors.push('Nome do feirão ausente');
+    if(!dados.localEvento) rowErrors.push('Local/Cidade ausente');
+    if(dados.dataInformadaBruta && !dados.dataEvento) rowErrors.push('Data em formato inválido (use DD/MM/AAAA)');
+    const chave = normStr(dados.nomeFeirao)+'|'+(dados.dataEvento||'');
+    if(dados.nomeFeirao) {
+      if(existentes.has(chave)) rowErrors.push('Já existe um feirão cadastrado com esse nome e essa data');
+      else if(seenInSheet.has(chave)) rowErrors.push('Duplicado dentro da própria planilha (mesmo nome e data)');
+    }
+    const { erro: recErro } = resolveRowRecrutadorFeirao(dados, defaultRecNome);
+    if(recErro) rowErrors.push(recErro);
+    if(dados.nomeFeirao) seenInSheet.add(chave);
+    if(rowErrors.length) {
+      errors.push({ rowKey: r.__rowKey, row: r.__rowNum, nome: dados.nomeFeirao||'(sem nome)', errors: rowErrors });
+    } else {
+      valid.push(r);
+    }
+  });
+
+  document.getElementById('impf-status').innerHTML =
+    `<span class="badge badge-green">${valid.length} válido(s)</span> <span class="badge badge-red">${errors.length} com erro</span>`;
+  document.getElementById('btn-impf-confirm').style.display = valid.length ? '' : 'none';
+
+  const preview = document.getElementById('impf-preview');
+  if(!rows.length){ preview.innerHTML='<p class="text-muted text-sm">Planilha vazia</p>'; return; }
+
+  const tableRows = rows.slice(0,50).map(r => {
+    const dados = r.__extracted || extractImportRowFeirao(r);
+    const { erro: recErro, willCreate, nome: recNome } = resolveRowRecrutadorFeirao(dados, defaultRecNome);
+    const status = resolveStatusFeirao(dados);
+    const chave = normStr(dados.nomeFeirao)+'|'+(dados.dataEvento||'');
+    const dupErro = dados.nomeFeirao && (existentes.has(chave));
+    const dataInvalida = dados.dataInformadaBruta && !dados.dataEvento;
+    const hasErr = !dados.nomeFeirao || !dados.localEvento || !!recErro || dupErro || dataInvalida;
+    const dataFmt = dados.dataEvento ? dados.dataEvento.split('-').reverse().join('/') : '—';
+    return `<tr style="${hasErr?'background:var(--red-light)':''}">
+      <td>${r.__rowNum}</td>
+      <td>${esc(dados.nomeFeirao||'—')}</td>
+      <td>${dataFmt}</td>
+      <td>${esc(dados.localEvento||'—')}</td>
+      <td>${esc(recNome||'—')}${willCreate?' <span class="badge badge-blue" style="font-size:.65rem">novo</span>':''}</td>
+      <td>${status==='ABERTO'?'<span class="badge badge-green">Aberto</span>':'<span class="badge badge-gray">Encerrado</span>'}</td>
+      <td>${hasErr ? '<span class="badge badge-red">⚠ Erro</span>' : '<span class="badge badge-green">OK</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  preview.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Nome</th><th>Data</th><th>Local</th><th>Recrutador</th><th>Status</th><th>Situação</th></tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table></div>${rows.length>50?`<p class="text-muted text-sm" style="margin-top:8px">Mostrando 50 de ${rows.length} linhas</p>`:''}`;
+
+  const errEl = document.getElementById('impf-errors');
+  if(!errors.length) {
+    errEl.innerHTML = '<p class="text-muted text-sm">✅ Nenhum erro registrado.</p>';
+    document.getElementById('impf-errors-wrap').style.display = 'none';
+    return;
+  }
+  document.getElementById('impf-errors-wrap').style.display = '';
+  const btn = document.getElementById('btn-toggle-errs-f');
+  document.getElementById('impf-errors').style.display = '';
+  if(btn) btn.textContent = '▲ Ocultar';
+  errEl.innerHTML = `
+    <p class="text-muted text-sm" style="margin-bottom:12px"><strong>${errors.length} registro(s)</strong> não podem ser importados. Corrija a planilha e reimporte, ou apenas ignore-os — os registros válidos são importados normalmente.</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${errors.map(e => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--red-light);border:1px solid #fca5a5;border-radius:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.87rem;color:var(--red)">Linha ${e.row} — ${esc(e.nome)}</div>
+            <div style="font-size:.8rem;color:#b91c1c;margin-top:2px">${e.errors.map(x=>`⚠ ${x}`).join(' &nbsp;·&nbsp; ')}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-secondary btn-sm" onclick="removeImpfRow(${e.rowKey})" style="white-space:nowrap;color:var(--red);border-color:#fca5a5" title="Remover este registro da importação">🗑 Excluir</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function toggleImpfErrors() {
+  const inner = document.getElementById('impf-errors');
+  const btn   = document.getElementById('btn-toggle-errs-f');
+  const hidden = inner.style.display === 'none';
+  inner.style.display = hidden ? '' : 'none';
+  btn.textContent = hidden ? '▲ Ocultar' : '▼ Ver erros';
+}
+
+function removeImpfRow(rowKey) {
+  const idx = importPreviewDataFeiroes.findIndex(x => x.__rowKey === rowKey);
+  if(idx === -1) { toast('Linha não encontrada (já pode ter sido removida).','error'); return; }
+  importPreviewDataFeiroes.splice(idx, 1);
+  if(!importPreviewDataFeiroes.length) {
+    document.getElementById('impf-preview').innerHTML = '<p class="text-muted text-sm text-center" style="padding:30px 0">Nenhum registro na fila.</p>';
+    document.getElementById('impf-status').innerHTML = '';
+    document.getElementById('btn-impf-confirm').style.display = 'none';
+    document.getElementById('impf-errors-wrap').style.display = 'none';
+    return;
+  }
+  renderImportPreviewFeiroes(importPreviewDataFeiroes);
+  toast('Registro removido da importação.', 'info');
+}
+
+async function confirmImportFeiroes() {
+  const defaultRecNome = document.getElementById('impf-recrutador-padrao')?.value || '';
+  let feiraos = DB.feiraos();
+  let recrutadores = DB.recrutadores();
+  let eventos = DB.eventos();
+  const existentes = new Set(feiraos.map(f => normStr(f.nomeFeirao)+'|'+(f.dataEvento||'')));
+  const seenInSheet = new Set();
+  const skipped = [];
+  let added = 0, recCriados = 0;
+
+  importPreviewDataFeiroes.forEach(r => {
+    const dados = r.__extracted || extractImportRowFeirao(r);
+    const errs = [];
+    if(!dados.nomeFeirao) errs.push('Nome ausente');
+    if(!dados.localEvento) errs.push('Local ausente');
+    if(dados.dataInformadaBruta && !dados.dataEvento) errs.push('Data inválida');
+    const chave = normStr(dados.nomeFeirao)+'|'+(dados.dataEvento||'');
+    if(dados.nomeFeirao && (existentes.has(chave) || seenInSheet.has(chave))) errs.push('Já existe/duplicado');
+    const { nome: nomeRec, erro: recErro } = resolveRowRecrutadorFeirao(dados, defaultRecNome);
+    if(recErro) errs.push(recErro);
+    if(errs.length) {
+      skipped.push({ row: r.__rowNum, nome: dados.nomeFeirao||'(sem nome)', errs });
+      return;
+    }
+
+    // Resolve ou cria o recrutador
+    let rec = findRecrutadorByName(nomeRec);
+    if(!rec) {
+      rec = { id: uid(), nome: nomeRec };
+      recrutadores.push(rec);
+      recCriados++;
+    }
+
+    const status = resolveStatusFeirao(dados);
+    const newId = uid();
+    feiraos.push({
+      id: newId, nomeFeirao: dados.nomeFeirao, dataEvento: dados.dataEvento,
+      localEvento: dados.localEvento, enderecoCompleto: dados.enderecoCompleto,
+      recrutadorId: rec.id, recrutadorNome: rec.nome, statusFeirao: status,
+      observacoes: dados.observacoes,
+    });
+
+    if(dados.dataEvento) {
+      eventos.push({
+        id: uid(), titulo: dados.nomeFeirao, dataIni: dados.dataEvento, dataFim: dados.dataEvento,
+        horaIni:'08:00', horaFim:'18:00', tipo:'feirao', prioridade:'alta',
+        local: dados.localEvento, responsavel: rec.nome, respId: rec.id, feiraoLink: newId,
+        descricao: dados.observacoes || 'Feirão criado automaticamente via importação em lote',
+        recorrente: false,
+      });
+    }
+
+    existentes.add(chave);
+    seenInSheet.add(chave);
+    added++;
+  });
+
+  if(recCriados) await DB.saveRecrutadores(recrutadores);
+  if(added) {
+    await DB.saveFeiraos(feiraos);
+    if(eventos.length) await DB.saveEventos(eventos);
+  }
+
+  if(added === 0) {
+    toast('Nenhum feirão novo importado.', 'error');
+  } else {
+    toast(`✅ ${added} feirão(ões) importado(s)!${recCriados?` (${recCriados} recrutador(es) novo(s) criado(s))`:''}`, 'success');
+  }
+
+  if(skipped.length) {
+    document.getElementById('impf-errors-wrap').style.display = '';
+    document.getElementById('impf-errors').style.display = '';
+    document.getElementById('impf-errors').innerHTML = `
+      <p class="text-muted text-sm" style="margin-bottom:10px"><strong>${skipped.length} registro(s) foram ignorados</strong> por erros não corrigidos:</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${skipped.map(s=>`
+          <div style="padding:8px 12px;background:var(--red-light);border:1px solid #fca5a5;border-radius:8px;font-size:.82rem">
+            <strong style="color:var(--red)">Linha ${s.row} — ${esc(s.nome)}</strong>
+            <span style="color:#b91c1c;margin-left:8px">${s.errs.map(e=>`⚠ ${e}`).join(' · ')}</span>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    document.getElementById('impf-errors-wrap').style.display = 'none';
+  }
+
+  document.getElementById('btn-impf-confirm').style.display='none';
+  importPreviewDataFeiroes=[];
+  document.getElementById('impf-preview').innerHTML='<p class="text-muted text-sm text-center" style="padding:30px 0">Importação concluída!</p>';
+  document.getElementById('impf-status').innerHTML='';
+  document.getElementById('impf-file').value='';
+
+  populateFeiraoSelects();
+  populateAnRecSelect();
+  populateImpfRecrutadorSelect();
+  refreshMsFilters();
+  renderFeiraos();
+  renderDashboard();
+}
+
+function downloadTemplateFeiroes() {
+  const recrutadoresCadastrados = DB.recrutadores().slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||''));
+  const exemploRec1 = recrutadoresCadastrados[0]?.nome || 'Ana Paula Silva';
+  const exemploRec2 = recrutadoresCadastrados[1]?.nome || exemploRec1;
+  const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  const futura  = new Date(Date.now() + 15*86400000);
+  const passada = new Date(Date.now() - 15*86400000);
+
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['nome','data','local','endereco','recrutador','status','observacoes'],
+    ['Feirão GPS Santos', fmt(futura), 'Santos - SP', 'Av. Ana Costa, 500', exemploRec1, '', 'Status em branco: o sistema define automaticamente pela data (futura = Aberto)'],
+    ['Feirão GPS Curitiba', fmt(passada), 'Curitiba - PR', '', exemploRec2, '', 'Data passada: será marcado como Encerrado automaticamente'],
+  ]);
+  ws['!cols'] = [{wch:30},{wch:12},{wch:22},{wch:30},{wch:24},{wch:12},{wch:44}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Feirões');
+
+  const wsRec = XLSX.utils.aoa_to_sheet([
+    ['Recrutadores Cadastrados (copie exatamente para a coluna "recrutador")'],
+    ...recrutadoresCadastrados.map(r => [r.nome]),
+  ]);
+  wsRec['!cols'] = [{wch:45}];
+  XLSX.utils.book_append_sheet(wb,wsRec,'Recrutadores Cadastrados');
+
+  XLSX.writeFile(wb,'modelo_feiroes_gps.xlsx');
 }
 
 // ═══════════════════════════════════════
@@ -4451,6 +5098,7 @@ async function initApp() {
   await autoEncerrarFeiroesVencidos({silent:true});
   populateFeiraoSelects();
   populateAnRecSelect();
+  refreshMsFilters();
   renderDashboard();
 }
 
